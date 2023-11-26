@@ -1,0 +1,31 @@
+FROM python:latest
+
+ENV DISPLAY :0
+
+ENV USERNAME developer
+
+WORKDIR /workspace
+
+RUN pip install pex
+
+# create and switch to a user
+RUN echo "backus ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd --no-log-init --home-dir /home/$USERNAME --create-home --shell /bin/bash $USERNAME
+RUN adduser $USERNAME sudo
+USER $USERNAME
+
+WORKDIR /home/$USERNAME
+
+COPY bin .
+
+RUN pip wheel -w . .
+
+RUN pex --python=python3 -f $PWD $(cat requirements.txt) sample -e main -o example.pex
+
+ENV WAIT_VERSION 2.7.2
+
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/$WAIT_VERSION/wait /wait
+
+RUN chmod +x /wait
+
+CMD ["./example.pex"]
